@@ -1,0 +1,373 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output       = "../src/generated/prisma"
+  // moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  user
+  coach
+  moderator
+  admin
+}
+
+enum NotificationType {
+  plan_created
+  plan_approved
+  plan_rejected
+
+  coach_plan_created
+  coach_plan_updated
+}
+
+enum PlanStatus {
+  pending
+  approved
+  rejected
+}
+
+enum CoachRequestStatus {
+  pending
+  accepted
+  rejected
+  cancelled
+}
+
+enum TrainingGoal {
+  bulk
+  cut
+  maintenance
+}
+
+enum NutritionGoal {
+  bulk
+  cut
+  maintenance
+}
+
+enum Gender {
+  male
+  female
+}
+
+enum ActivityLevel {
+  low
+  medium
+  high
+}
+
+enum ExerciseType {
+  compound
+  isolation
+  bodyweight
+}
+
+enum MuscleGroup {
+  chest
+  back
+  legs
+  shoulders
+  biceps
+  triceps
+  abs
+  glutes
+  calves
+  full_body
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String?
+  email        String   @unique
+  password     String
+  role         Role     @default(user)
+  refreshToken String?
+  createdAt    DateTime @default(now())
+
+  plans            TrainingPlan[]
+  interactions     UserPlanInteraction[]
+  notifications    Notification[]
+  trainingSessions TrainingSession[]
+
+  sentCoachRequests     CoachRequest[] @relation("StudentCoachRequests")
+  receivedCoachRequests CoachRequest[] @relation("CoachRequests")
+  assignedTrainingPlans TrainingPlan[] @relation("AssignedTrainingPlans")
+
+  coachNutritionPlans   NutritionPlan[] @relation("CoachNutritionPlans")
+  studentNutritionPlans NutritionPlan[] @relation("StudentNutritionPlans")
+
+  @@map("users")
+}
+
+model TrainingPlan {
+  id              Int        @id @default(autoincrement())
+  title           String
+  description     String?
+  status          PlanStatus @default(pending)
+  rejectionReason String?
+
+  goal TrainingGoal @default(bulk)
+
+  deloadAfterWeeks Int @default(6)
+  deloadPercent    Int @default(10)
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+
+  assignedToUserId Int?
+  assignedToUser   User? @relation("AssignedTrainingPlans", fields: [assignedToUserId], references: [id])
+
+  createdAt            DateTime              @default(now())
+  userPlanInteractions UserPlanInteraction[]
+  workoutDays          WorkoutDay[]
+  trainingSessions     TrainingSession[]
+
+  @@map("training_plans")
+}
+
+model UserPlanInteraction {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  planId Int
+
+  liked Boolean @default(false)
+  saved Boolean @default(false)
+
+  user User         @relation(fields: [userId], references: [id])
+  plan TrainingPlan @relation(fields: [planId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, planId]) // ❗ один пользователь — одна запись
+  @@map("user_plan_interactions")
+}
+
+model Notification {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  type    NotificationType
+  title   String
+  message String
+  isRead  Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model WorkoutDay {
+  id    Int    @id @default(autoincrement())
+  title String
+  order Int    @default(0)
+
+  trainingSessions TrainingSession[]
+  planId           Int
+  plan             TrainingPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  exercises Exercise[]
+
+  createdAt DateTime @default(now())
+
+  @@map("workout_days")
+}
+
+model Exercise {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  order       Int     @default(0)
+
+  type        ExerciseType @default(compound)
+  muscleGroup MuscleGroup  @default(full_body)
+
+  targetSets Int   @default(3)
+  minReps    Int   @default(8)
+  maxReps    Int   @default(12)
+  targetRir  Int   @default(2)
+  weightStep Float @default(2.5)
+
+  workoutDayId Int
+  workoutDay   WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+
+  setLogs ExerciseSetLog[]
+
+  createdAt   DateTime             @default(now())
+  sessionLogs ExerciseSessionLog[]
+
+  @@map("exercises")
+}
+
+model TrainingSession {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  planId Int
+  plan   TrainingPlan @relation(fields: [planId], references: [id])
+
+  workoutDayId Int?
+  workoutDay   WorkoutDay? @relation(fields: [workoutDayId], references: [id])
+
+  date DateTime @default(now())
+
+  exerciseLogs ExerciseSessionLog[]
+
+  createdAt       DateTime         @default(now())
+  exerciseSetLogs ExerciseSetLog[]
+
+  @@map("training_sessions")
+}
+
+model ExerciseSetLog {
+  id Int @id @default(autoincrement())
+
+  exerciseLogId Int
+  exerciseLog   ExerciseSessionLog @relation(fields: [exerciseLogId], references: [id], onDelete: Cascade)
+
+  exerciseId Int
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  setNumber Int
+  weight    Float
+  reps      Int
+  rir       Int?
+
+  createdAt         DateTime         @default(now())
+  trainingSession   TrainingSession? @relation(fields: [trainingSessionId], references: [id])
+  trainingSessionId Int?
+
+  @@map("exercise_set_logs")
+}
+
+model CoachRequest {
+  id Int @id @default(autoincrement())
+
+  studentId Int
+  student   User @relation("StudentCoachRequests", fields: [studentId], references: [id])
+
+  coachId Int
+  coach   User @relation("CoachRequests", fields: [coachId], references: [id])
+
+  status CoachRequestStatus @default(pending)
+
+  message String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, coachId])
+  @@map("coach_requests")
+}
+
+model ExerciseSessionLog {
+  id Int @id @default(autoincrement())
+
+  sessionId Int
+  session   TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  exerciseId Int
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  note String?
+
+  targetSetsSnapshot Int?
+  minRepsSnapshot    Int?
+  maxRepsSnapshot    Int?
+  targetRirSnapshot  Int?
+  weightStepSnapshot Float?
+
+  setLogs ExerciseSetLog[]
+
+  createdAt DateTime @default(now())
+
+  @@map("exercise_session_logs")
+}
+
+model NutritionPlan {
+  id Int @id @default(autoincrement())
+
+  coachId Int
+  coach   User @relation("CoachNutritionPlans", fields: [coachId], references: [id])
+
+  studentId Int
+  student   User @relation("StudentNutritionPlans", fields: [studentId], references: [id])
+
+  title String
+  goal  NutritionGoal
+
+  weightKg Float
+  heightCm Float
+  age      Int
+  gender   Gender
+  activity ActivityLevel
+
+  dailyCalories Int
+  proteinGrams  Int
+  fatGrams      Int
+  carbsGrams    Int
+
+  days NutritionDay[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("nutrition_plans")
+}
+
+model NutritionDay {
+  id Int @id @default(autoincrement())
+
+  planId Int
+  plan   NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  dayNumber Int
+  title     String
+
+  meals NutritionMeal[]
+
+  @@map("nutrition_days")
+}
+
+model NutritionMeal {
+  id Int @id @default(autoincrement())
+
+  dayId Int
+  day   NutritionDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  name  String
+  time  String?
+  foods NutritionFood[]
+
+  @@map("nutrition_meals")
+}
+
+model NutritionFood {
+  id Int @id @default(autoincrement())
+
+  mealId Int
+  meal   NutritionMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  name  String
+  grams Float
+
+  calories Int
+  protein  Float
+  fat      Float
+  carbs    Float
+
+  @@map("nutrition_foods")
+}
