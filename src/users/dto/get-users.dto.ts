@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { UserApprovalStatus } from '@prisma/client';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { Role } from '../../common/enums/role.enum';
@@ -20,4 +21,13 @@ export class GetUsersDto extends PaginationDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({
+    enum: UserApprovalStatus,
+    example: UserApprovalStatus.pending,
+    description: 'Filter users by approval status',
+  })
+  @IsOptional()
+  @IsEnum(UserApprovalStatus)
+  approvalStatus?: UserApprovalStatus;
 }

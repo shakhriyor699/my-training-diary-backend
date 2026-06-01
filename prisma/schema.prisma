@@ -43,6 +43,12 @@ enum CoachRequestStatus {
   cancelled
 }
 
+enum UserApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
 enum TrainingGoal {
   bulk
   cut
@@ -86,13 +92,15 @@ enum MuscleGroup {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String?
-  email        String   @unique
-  password     String
-  role         Role     @default(user)
-  refreshToken String?
-  createdAt    DateTime @default(now())
+  id               Int                @id @default(autoincrement())
+  name             String?
+  email            String             @unique
+  password         String
+  role             Role               @default(user)
+  approvalStatus   UserApprovalStatus @default(pending)
+  rejectionReason  String?
+  refreshToken     String?
+  createdAt        DateTime           @default(now())
 
   plans            TrainingPlan[]
   interactions     UserPlanInteraction[]

@@ -10,6 +10,7 @@ import { SelfOrAdminGuard } from '../common/guards/self-or-admin.guard';
 import { GetUsersDto } from './dto/get-users.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
+import { UpdateUserApprovalDto } from './dto/update-user-approval.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('users')
@@ -36,6 +37,13 @@ export class UsersController {
   @UseGuards(RolesGuard)
   findAll(@Query() paginationDto: GetUsersDto) {
     return this.usersService.findAll(paginationDto);
+  }
+
+  @Get('pending')
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @UseGuards(RolesGuard)
+  findPendingApprovals() {
+    return this.usersService.findPendingApprovals();
   }
 
   @Get('roles')
@@ -78,6 +86,16 @@ export class UsersController {
 
     return this.usersService.update(+id, dto);
 
+  }
+
+  @Patch(':id/approval')
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @UseGuards(RolesGuard)
+  updateApprovalStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserApprovalDto,
+  ) {
+    return this.usersService.updateApprovalStatus(+id, dto);
   }
 
   @Get('me/stats')

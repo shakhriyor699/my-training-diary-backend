@@ -16,18 +16,8 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-
-
-    const tokens = await this.auth.register(dto);
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      secure: false, // true на https
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return { accessToken: tokens.accessToken };
+  async register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto);
   }
 
 

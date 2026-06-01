@@ -1,5 +1,10 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { UserApprovalStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 import * as bcrypt from 'bcrypt';
@@ -24,9 +29,18 @@ export class AuthService {
         email,
         password: hash,
       },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        approvalStatus: true,
+      },
     });
 
-    return this.issueTokens(user.id, user.role);
+    return {
+      message: 'Registration request created. Wait for admin approval.',
+      user,
+    };
   }
 
 
@@ -67,6 +81,8 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException();
 
+    this.ensureUserApproved(user.approvalStatus, user.rejectionReason);
+
     return this.issueTokens(user.id, user.role);
   }
 
@@ -74,6 +90,8 @@ export class AuthService {
   async refresh(userId: number, refreshToken: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || !user.refreshToken) throw new ForbiddenException();
+
+    this.ensureUserApproved(user.approvalStatus, user.rejectionReason);
 
     const match = await bcrypt.compare(refreshToken, user.refreshToken);
     if (!match) throw new ForbiddenException();
@@ -89,6 +107,28 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { refreshToken: null },
+    });
+  }
+
+  private ensureUserApproved(
+    approvalStatus: UserApprovalStatus,
+    rejectionReason: string | null,
+  ) {
+    if (approvalStatus === UserApprovalStatus.approved) {
+      return;
+    }
+
+    if (approvalStatus === UserApprovalStatus.pending) {
+      throw new ForbiddenException({
+        message: 'Your account is waiting for admin approval.',
+        approvalStatus,
+      });
+    }
+
+    throw new ForbiddenException({
+      message: 'Your registration request was rejected.',
+      approvalStatus,
+      rejectionReason,
     });
   }
 

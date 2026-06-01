@@ -4,6 +4,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUsersDto } from './dto/get-users.dto';
+import { UserApprovalStatus } from '@prisma/client';
+import { UpdateUserApprovalDto } from './dto/update-user-approval.dto';
 
 @Injectable()
 export class UsersService {
@@ -78,15 +80,18 @@ export class UsersService {
     return this.prisma.user.create({
       data: {
         name: dto.name.trim(),
-        email: dto.email,
+        email: dto.email.trim().toLowerCase(),
         password: hash,
         role: dto.role,
+        approvalStatus: dto.approvalStatus ?? UserApprovalStatus.approved,
       },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        approvalStatus: true,
+        rejectionReason: true,
         createdAt: true,
       },
     });
@@ -100,6 +105,8 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
+        approvalStatus: true,
+        rejectionReason: true,
         createdAt: true,
       },
     });
@@ -112,6 +119,14 @@ export class UsersService {
       data.password = await bcrypt.hash(dto.password, 10);
     }
 
+    if (dto.email) {
+      data.email = dto.email.trim().toLowerCase();
+    }
+
+    if (dto.name) {
+      data.name = dto.name.trim();
+    }
+
     return this.prisma.user.update({
       where: { id },
       data,
@@ -120,12 +135,14 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
+        approvalStatus: true,
+        rejectionReason: true,
       },
     });
   }
 
   async findAll(paginationDto: GetUsersDto) {
-    const { page, limit, role, search } = paginationDto;
+    const { page, limit, role, search, approvalStatus } = paginationDto;
 
     if (page && limit) {
       const skip = (page - 1) * limit;
@@ -134,6 +151,10 @@ export class UsersService {
 
       if (role) {
         where.role = role;
+      }
+
+      if (approvalStatus) {
+        where.approvalStatus = approvalStatus;
       }
 
       if (search) {
@@ -166,6 +187,8 @@ export class UsersService {
             name: true,
             email: true,
             role: true,
+            approvalStatus: true,
+            rejectionReason: true,
             createdAt: true,
           },
         }),
@@ -181,6 +204,48 @@ export class UsersService {
         },
       };
     }
+  }
+
+  async findPendingApprovals() {
+    return this.prisma.user.findMany({
+      where: {
+        approvalStatus: UserApprovalStatus.pending,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        approvalStatus: true,
+        rejectionReason: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async updateApprovalStatus(id: number, dto: UpdateUserApprovalDto) {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        approvalStatus: dto.status,
+        rejectionReason:
+          dto.status === UserApprovalStatus.rejected ? dto.reason ?? null : null,
+        refreshToken:
+          dto.status === UserApprovalStatus.approved ? undefined : null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        approvalStatus: true,
+        rejectionReason: true,
+        createdAt: true,
+      },
+    });
   }
 
   async getMyStats(userId: number) {

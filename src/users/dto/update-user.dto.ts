@@ -1,3 +1,4 @@
+import { UserApprovalStatus } from '@prisma/client';
 import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Role } from '../../common/enums/role.enum';
 import { ApiPropertyOptional } from '@nestjs/swagger';
@@ -35,4 +36,21 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEnum(Role)
   role?: Role;
+
+  @ApiPropertyOptional({
+    enum: UserApprovalStatus,
+    example: UserApprovalStatus.approved,
+    description: 'User approval status',
+  })
+  @IsOptional()
+  @IsEnum(UserApprovalStatus)
+  approvalStatus?: UserApprovalStatus;
+
+  @ApiPropertyOptional({
+    example: 'Registration request rejected by admin',
+    description: 'Reason for rejection',
+  })
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
 }
