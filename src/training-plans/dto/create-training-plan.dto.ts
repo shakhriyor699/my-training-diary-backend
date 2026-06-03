@@ -31,12 +31,12 @@ export class CreateTrainingPlanDto {
     example: 6,
     description: 'Weeks before a deload week',
     minimum: 3,
-    maximum: 12,
+    maximum: 52,
   })
   @IsOptional()
   @IsInt()
   @Min(3)
-  @Max(12)
+  @Max(52)
   deloadAfterWeeks?: number;
 
   @ApiPropertyOptional({
