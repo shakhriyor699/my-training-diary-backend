@@ -11,6 +11,7 @@ import { GetUsersDto } from './dto/get-users.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { UpdateUserApprovalDto } from './dto/update-user-approval.dto';
+import { GetTrainingSessionsDto } from '../training-plans/dto/get-training-sessions.dto';
 
 @ApiBearerAuth('access-token')
 @Controller('users')
@@ -77,6 +78,16 @@ export class UsersController {
   @UseGuards(RolesGuard)
   findOne(@Param('id') id: string) {
     return this.usersService.findById(+id);
+  }
+
+  @Get(':id/training-overview')
+  @Roles(Role.ADMIN)
+  @UseGuards(RolesGuard)
+  getTrainingOverview(
+    @Param('id') id: string,
+    @Query() dto: GetTrainingSessionsDto,
+  ) {
+    return this.usersService.getAdminTrainingOverview(+id, dto);
   }
 
 
