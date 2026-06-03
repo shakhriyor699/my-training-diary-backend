@@ -412,11 +412,7 @@ export class TrainingPlansService {
 
     const updatedPlan = await this.prisma.trainingPlan.update({
       where: { id: planId },
-      data: {
-        ...dto,
-        status: plan.assignedToUserId ? PlanStatus.approved : PlanStatus.pending,
-        rejectionReason: null,
-      },
+      data: dto,
     });
 
     if (plan.assignedToUserId) {
@@ -585,14 +581,6 @@ export class TrainingPlansService {
       },
     });
 
-    await this.prisma.trainingPlan.update({
-      where: { id: planId },
-      data: {
-        status: plan.assignedToUserId ? PlanStatus.approved : PlanStatus.pending,
-        rejectionReason: null,
-      },
-    });
-
     if (plan.assignedToUserId) {
       await this.notificationsService.create(plan.assignedToUserId, {
         type: NotificationType.coach_plan_updated,
@@ -642,14 +630,6 @@ export class TrainingPlansService {
       },
     });
 
-    await this.prisma.trainingPlan.update({
-      where: { id: workoutDay.planId },
-      data: {
-        status: plan.assignedToUserId ? PlanStatus.approved : PlanStatus.pending,
-        rejectionReason: null,
-      },
-    });
-
     if (plan.assignedToUserId) {
       await this.notificationsService.create(plan.assignedToUserId, {
         type: NotificationType.coach_plan_updated,
@@ -685,14 +665,6 @@ export class TrainingPlansService {
       data: dto,
     });
 
-    await this.prisma.trainingPlan.update({
-      where: { id: workoutDay.planId },
-      data: {
-        status: plan.assignedToUserId ? PlanStatus.approved : PlanStatus.pending,
-        rejectionReason: null,
-      },
-    });
-
     if (plan.assignedToUserId) {
       await this.notificationsService.create(plan.assignedToUserId, {
         type: NotificationType.coach_plan_updated,
@@ -723,14 +695,6 @@ export class TrainingPlansService {
 
     await this.prisma.workoutDay.delete({
       where: { id: dayId },
-    });
-
-    await this.prisma.trainingPlan.update({
-      where: { id: workoutDay.planId },
-      data: {
-        status: plan.assignedToUserId ? PlanStatus.approved : PlanStatus.pending,
-        rejectionReason: null,
-      },
     });
 
     if (plan.assignedToUserId) {
@@ -783,14 +747,6 @@ export class TrainingPlansService {
       data,
     });
 
-    await this.prisma.trainingPlan.update({
-      where: { id: exercise.workoutDay.planId },
-      data: {
-        status: plan.assignedToUserId ? PlanStatus.approved : PlanStatus.pending,
-        rejectionReason: null,
-      },
-    });
-
     if (plan.assignedToUserId) {
       await this.notificationsService.create(plan.assignedToUserId, {
         type: NotificationType.coach_plan_updated,
@@ -828,14 +784,6 @@ export class TrainingPlansService {
 
     await this.prisma.exercise.delete({
       where: { id: exerciseId },
-    });
-
-    await this.prisma.trainingPlan.update({
-      where: { id: exercise.workoutDay.planId },
-      data: {
-        status: plan.assignedToUserId ? PlanStatus.approved : PlanStatus.pending,
-        rejectionReason: null,
-      },
     });
 
     if (plan.assignedToUserId) {
