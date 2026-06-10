@@ -1,9 +1,8 @@
 
 import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient, Role, UserApprovalStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
-import { PrismaClient } from '../generated/prisma/client';
-import { Role, UserApprovalStatus } from '../generated/prisma';
 
 dotenv.config();
 
