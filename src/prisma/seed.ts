@@ -3,7 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 import { PrismaClient } from '../generated/prisma/client';
-import { Role } from '../generated/prisma';
+import { Role, UserApprovalStatus } from '../generated/prisma';
 
 dotenv.config();
 
@@ -28,11 +28,13 @@ async function main() {
     update: {
       password: hashedPassword,
       role: Role.admin,
+      approvalStatus: UserApprovalStatus.approved,
     },
     create: {
       email: adminEmail,
       password: hashedPassword,
       role: Role.admin,
+      approvalStatus: UserApprovalStatus.approved,
     },
   });
 
